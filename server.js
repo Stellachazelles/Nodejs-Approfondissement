@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const mongoose = require("mongoose");
 const cors = require("cors");
 const NotFoundError = require("./errors/not-found");
 const userRouter = require("./api/users/users.router");
@@ -46,6 +47,20 @@ app.use((error, req, res, next) => {
     message,
   });
 });
+
+// MongoDB Connection
+mongoose.connect('mongodb://localhost:27017/yourdbname', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log('Connected to MongoDB');
+    // Start the server
+    const port = 3000;
+    server.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`);
+    });
+  })
+  .catch(err => {
+    console.error('Database connection error', err);
+  });
 
 module.exports = {
   app,
