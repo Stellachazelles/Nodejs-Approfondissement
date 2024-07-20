@@ -1,8 +1,10 @@
-const NotFoundError = require("../../errors/not-found");
-const UnauthorizedError = require("../../errors/unauthorized");
-const jwt = require("jsonwebtoken");
-const config = require("../../config");
-const usersService = require("./users.service");
+const usersService = require('./users.service');
+const UnauthorizedError = require('../../errors/unauthorized');
+const jwt = require('jsonwebtoken');
+// const config = require('../config');
+const articleService = require('../articles/articles.service');
+const Article = require('../articles/articles.schema');
+
 
 class UsersController {
   async getAll(req, res, next) {
@@ -13,6 +15,7 @@ class UsersController {
       next(err);
     }
   }
+
   async getById(req, res, next) {
     try {
       const id = req.params.id;
@@ -25,6 +28,7 @@ class UsersController {
       next(err);
     }
   }
+
   async create(req, res, next) {
     try {
       const user = await usersService.create(req.body);
@@ -35,6 +39,7 @@ class UsersController {
       next(err);
     }
   }
+
   async update(req, res, next) {
     try {
       const id = req.params.id;
@@ -46,6 +51,7 @@ class UsersController {
       next(err);
     }
   }
+
   async delete(req, res, next) {
     try {
       const id = req.params.id;
@@ -56,6 +62,7 @@ class UsersController {
       next(err);
     }
   }
+
   async login(req, res, next) {
     try {
       const { email, password } = req.body;
@@ -63,12 +70,8 @@ class UsersController {
       if (!userId) {
         throw new UnauthorizedError();
       }
-      const token = jwt.sign({ userId }, config.secretJwtToken, {
-        expiresIn: "3d",
-      });
-      res.json({
-        token,
-      });
+      const token = jwt.sign({ userId }, config.secret);
+      res.json({ token });
     } catch (err) {
       next(err);
     }

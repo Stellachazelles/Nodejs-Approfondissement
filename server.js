@@ -3,66 +3,93 @@ const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
+
 const NotFoundError = require("./errors/not-found");
 const userRouter = require("./api/users/users.router");
+const articleRouter = require("./api/articles/articles.router");
 const usersController = require("./api/users/users.controller");
 const authMiddleware = require("./middlewares/auth");
-require("./api/articles/articles.schema"); // temporaire
+
+// Assurez-vous que ce chemin est correct
+require("./api/articles/articles.schema");
+
 const app = express();
-
 const server = http.createServer(app);
-const io = new Server(server);
-
-io.on("connection", (socket) => {
-  console.log("a user connected");
-  /*socket.on("my_event", (data) => {
-    console.log(data);
-  });
-  io.emit("event_from_server", { test: "foo" });*/
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
+// Configuration
+const config = {
+  port: process.env.PORT || 3000,
+  mongoUri: process.env.MONGO_URI || "mongodb://localhost:27017/myapp",
+  secretJwtToken: process.env.JWT_SECRET || "votre_secret_jwt_ici",
+};
+
+// Socket.IO
+io.on("connection", (socket) => {
+  console.log("Un utilisateur s'est connecté");
+  socket.on("disconnect", () => {
+    console.log("Un utilisateur s'est déconnecté");
+  });
+});
+
+// Middleware pour ajouter io à req
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/users", authMiddleware, userRouter);
+// Routes
+app.use("/api/users", userRouter);
+app.use("/api/articles", authMiddleware, articleRouter);
 app.post("/login", usersController.login);
 
-app.use("/", express.static("public"));
+// Servir les fichiers statiques
+app.use("/", express.static(path.join(__dirname, "public")));
 
+// Gestion des erreurs 404
 app.use((req, res, next) => {
   next(new NotFoundError());
 });
 
+// Gestion globale des erreurs
 app.use((error, req, res, next) => {
   const status = error.status || 500;
   const message = error.message;
-  res.status(status);
-  res.json({
+  res.status(status).json({
     status,
     message,
   });
 });
 
-// MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/yourdbname', { useNewUrlParser: true, useUnifiedTopology: true })
+// Connexion à MongoDB
+mongoose.set('strictQuery', true);
+mongoose.connect(config.mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
-    console.log('Connected to MongoDB');
-    // Start the server
-    const port = 3000;
-    server.listen(port, () => {
-      console.log(`Server is running on http://localhost:${port}`);
+    console.log('Connecté à MongoDB');
+    // Démarrage du serveur
+    server.listen(config.port, () => {
+      console.log(`Serveur en cours d'exécution sur http://localhost:${config.port}`);
     });
   })
   .catch(err => {
-    console.error('Database connection error', err)
+    console.error('Erreur de connexion à la base de données', err);
   });
 
 module.exports = {
   app,
   server,
 };
+
+
+app.use('/api/users', userRouter);
+app.use('/api/articles', articleRouter);

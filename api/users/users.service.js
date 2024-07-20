@@ -1,34 +1,22 @@
-const User = require("./users.model");
-const bcrypt = require("bcrypt");
+const Article = require('../articles/articles.schema');
 
-class UserService {
-  getAll() {
-    return User.find({}, "-password");
+class ArticlesService {
+  create(articleData) {
+    const article = new Article(articleData);
+    return article.save();
   }
-  get(id) {
-    return User.findById(id, "-password");
+
+  update(id, articleData) {
+    return Article.findByIdAndUpdate(id, articleData, { new: true, runValidators: true });
   }
-  create(data) {
-    const user = new User(data);
-    return user.save();
-  }
-  update(id, data) {
-    return User.findByIdAndUpdate(id, data, { new: true });
-  }
+
   delete(id) {
-    return User.deleteOne({ _id: id });
+    return Article.findByIdAndDelete(id);
   }
-  async checkPasswordUser(email, password) {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return false;
-    }
-    const bool = await bcrypt.compare(password, user.password);
-    if (!bool) {
-      return false;
-    }
-    return user._id;
+
+  getByUserId(userId) {
+    return Article.find({ user: userId });
   }
 }
 
-module.exports = new UserService();
+module.exports = new ArticlesService();

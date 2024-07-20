@@ -1,25 +1,15 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const articleSchema = Schema({
-  title: String,
-  content: String,
-  user: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
+const articleSchema = new Schema({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  status: { 
+    type: String, 
+    enum: ['draft', 'published'], 
+    default: 'draft' 
   },
+  author: { type: Schema.Types.ObjectId, ref: 'User' }
 });
 
-let Article;
-
-module.exports = Article = model("Article", articleSchema);
-
-/*async function test() {
-  const articles = await Article.find().populate({
-    path: "user",
-    select: "-password",
-    match: { name: /ben/i },
-  });
-  console.log(articles.filter((article) => article.user));
-}
-
-test();*/
+module.exports = mongoose.model('Article', articleSchema);
