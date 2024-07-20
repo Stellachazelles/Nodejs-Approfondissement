@@ -59,7 +59,7 @@ mongoose.connect('mongodb://localhost:27017/yourdbname', { useNewUrlParser: true
     });
   })
   .catch(err => {
-    console.error('Database connection error', err);
+    console.error('Database connection error', err)
   });
 
 module.exports = {
