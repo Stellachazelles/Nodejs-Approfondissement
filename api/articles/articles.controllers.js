@@ -1,4 +1,6 @@
+// /api/article/articles.controller.js
 const articlesService = require('./articles.service');
+const NotFoundError = require('../../errors/not-found'); // Importation de NotFoundError
 
 class ArticlesController {
   async create(req, res, next) {
@@ -17,6 +19,9 @@ class ArticlesController {
         return res.status(403).json({ message: 'Unauthorized' });
       }
       const article = await articlesService.update(req.params.id, req.body);
+      if (!article) {
+        throw new NotFoundError('Article not found');
+      }
       req.io.emit('article:updated', article);
       res.json(article);
     } catch (error) {
@@ -29,7 +34,10 @@ class ArticlesController {
       if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'Unauthorized' });
       }
-      await articlesService.delete(req.params.id);
+      const deletedArticle = await articlesService.delete(req.params.id);
+      if (!deletedArticle) {
+        throw new NotFoundError('Article not found');
+      }
       req.io.emit('article:deleted', req.params.id);
       res.status(204).end();
     } catch (error) {
@@ -37,10 +45,9 @@ class ArticlesController {
     }
   }
 
-  // Ajoutez cette méthode
   async getArticlesByUser(req, res, next) {
     try {
-      const articles = await articlesService.getArticlesByUser(req.params.userId);
+      const articles = await articlesService.getByUserId(req.params.userId);
       res.status(200).json(articles);
     } catch (error) {
       next(error);

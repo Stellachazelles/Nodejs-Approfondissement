@@ -1,10 +1,9 @@
+// /api/users/users.controller.js
 const usersService = require('./users.service');
 const UnauthorizedError = require('../../errors/unauthorized');
+const NotFoundError = require('../../errors/not-found'); // Importation de NotFoundError
 const jwt = require('jsonwebtoken');
-// const config = require('../config');
-const articleService = require('../articles/articles.service');
-const Article = require('../articles/articles.schema');
-
+const config = require('../../config'); // Assurez-vous que le chemin est correct
 
 class UsersController {
   async getAll(req, res, next) {
@@ -21,7 +20,7 @@ class UsersController {
       const id = req.params.id;
       const user = await usersService.get(id);
       if (!user) {
-        throw new NotFoundError();
+        throw new NotFoundError('User not found'); // Utilisation de NotFoundError
       }
       res.json(user);
     } catch (err) {
@@ -32,7 +31,7 @@ class UsersController {
   async create(req, res, next) {
     try {
       const user = await usersService.create(req.body);
-      user.password = undefined;
+      user.password = undefined; // Masquage du mot de passe
       req.io.emit("user:create", user);
       res.status(201).json(user);
     } catch (err) {
@@ -45,7 +44,10 @@ class UsersController {
       const id = req.params.id;
       const data = req.body;
       const userModified = await usersService.update(id, data);
-      userModified.password = undefined;
+      if (!userModified) {
+        throw new NotFoundError('User not found');
+      }
+      userModified.password = undefined; // Masquage du mot de passe
       res.json(userModified);
     } catch (err) {
       next(err);
@@ -55,7 +57,10 @@ class UsersController {
   async delete(req, res, next) {
     try {
       const id = req.params.id;
-      await usersService.delete(id);
+      const deletedUser = await usersService.delete(id);
+      if (!deletedUser) {
+        throw new NotFoundError('User not found');
+      }
       req.io.emit("user:delete", { id });
       res.status(204).send();
     } catch (err) {
@@ -68,9 +73,9 @@ class UsersController {
       const { email, password } = req.body;
       const userId = await usersService.checkPasswordUser(email, password);
       if (!userId) {
-        throw new UnauthorizedError();
+        throw new UnauthorizedError('Invalid credentials');
       }
-      const token = jwt.sign({ userId }, config.secret);
+      const token = jwt.sign({ userId }, config.secretJwtToken); // Utilisation de la clé secrète correcte
       res.json({ token });
     } catch (err) {
       next(err);

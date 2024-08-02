@@ -1,22 +1,46 @@
-const Article = require('../articles/articles.schema');
+// /api/users/users.service.js
+const bcrypt = require('bcrypt');
+const User = require('./users.model');
 
-class ArticlesService {
-  create(articleData) {
-    const article = new Article(articleData);
-    return article.save();
-  }
-
-  update(id, articleData) {
-    return Article.findByIdAndUpdate(id, articleData, { new: true, runValidators: true });
-  }
-
-  delete(id) {
-    return Article.findByIdAndDelete(id);
-  }
-
-  getByUserId(userId) {
-    return Article.find({ user: userId });
-  }
+async function getAll() {
+  return User.find();
 }
 
-module.exports = new ArticlesService();
+async function get(id) {
+  return User.findById(id);
+}
+
+async function create(userData) {
+  const hashedPassword = await bcrypt.hash(userData.password, 10); // Hachage du mot de passe
+  const user = new User({ ...userData, password: hashedPassword });
+  await user.save();
+  return user;
+}
+
+async function update(id, data) {
+  if (data.password) {
+    data.password = await bcrypt.hash(data.password, 10); // Hachage du mot de passe lors de la mise à jour
+  }
+  return User.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+}
+
+async function deleteUser(id) {
+  return User.findByIdAndDelete(id);
+}
+
+async function checkPasswordUser(email, password) {
+  const user = await User.findOne({ email });
+  if (user && bcrypt.compareSync(password, user.password)) {
+    return user._id;
+  }
+  return null;
+}
+
+module.exports = {
+  getAll,
+  get,
+  create,
+  update,
+  delete: deleteUser,
+  checkPasswordUser
+};
