@@ -1,38 +1,40 @@
-// /tests/articles.spec.js
 const request = require("supertest");
 const express = require("express");
 const mongoose = require("mongoose");
 const mockingoose = require("mockingoose");
-const Article = require("../api/article/articles.schema"); // Assurez-vous que le chemin est correct
-const articlesRouter = require("../api/article/articles.router"); // Assurez-vous que le chemin est correct
-const authMiddleware = require("../middlewares/auth"); // Middleware d'authentification
+const Article = require("../api/articles/articles.schema");
+const articlesRouter = require("../api/articles/articles.router");
+const authMiddleware = require("../middlewares/auth");
 
-// Configuration de l'application de test
+// Mock du middleware d'authentification
+jest.mock("../middlewares/auth", () => (req, res, next) => {
+  req.user = { _id: "mockUserId" };
+  next();
+});
+
 const app = express();
 app.use(express.json());
-app.use(authMiddleware); // Ajoute l'authentification à toutes les requêtes
-app.use('/api/articles', articlesRouter); // Utilisation correcte du routeur
+app.use(authMiddleware);
+app.use('/api/articles', articlesRouter);
 
-// Mock data
 const mockArticle = {
-  _id: mongoose.Types.ObjectId().toString(), // Assurez-vous que c'est une chaîne
+  _id: mongoose.Types.ObjectId().toString(),
   title: 'Test Article',
   content: 'This is a test article.',
   status: 'draft',
-  user: mongoose.Types.ObjectId().toString() // Assurez-vous que c'est une chaîne
+  user: mongoose.Types.ObjectId().toString()
 };
 
 describe('Articles API', () => {
   beforeEach(() => {
-    mockingoose.resetAll(); // Réinitialise les mocks avant chaque test
+    mockingoose.resetAll();
   });
 
   it('should create an article', async () => {
-    mockingoose(Article).toReturn(mockArticle, 'save'); // Mock le modèle Article pour simuler la sauvegarde
+    mockingoose(Article).toReturn(mockArticle, 'save');
 
     const res = await request(app)
       .post('/api/articles')
-      .set('Authorization', 'Bearer valid_token') // Simule un en-tête d'authentification valide
       .send(mockArticle);
 
     expect(res.status).toBe(201);
@@ -41,11 +43,10 @@ describe('Articles API', () => {
   });
 
   it('should update an article', async () => {
-    mockingoose(Article).toReturn(mockArticle, 'findOneAndUpdate'); // Mock la mise à jour
+    mockingoose(Article).toReturn({ ...mockArticle, title: 'Updated Title' }, 'findOneAndUpdate');
 
     const res = await request(app)
       .put(`/api/articles/${mockArticle._id}`)
-      .set('Authorization', 'Bearer valid_token')
       .send({ title: 'Updated Title' });
 
     expect(res.status).toBe(200);
@@ -53,21 +54,19 @@ describe('Articles API', () => {
   });
 
   it('should delete an article', async () => {
-    mockingoose(Article).toReturn(mockArticle, 'findOneAndDelete'); // Mock la suppression
+    mockingoose(Article).toReturn(mockArticle, 'findOneAndDelete');
 
     const res = await request(app)
-      .delete(`/api/articles/${mockArticle._id}`)
-      .set('Authorization', 'Bearer valid_token');
+      .delete(`/api/articles/${mockArticle._id}`);
 
     expect(res.status).toBe(204);
   });
 
   it('should get articles by user', async () => {
-    mockingoose(Article).toReturn([mockArticle], 'find'); // Mock la recherche d'articles
+    mockingoose(Article).toReturn([mockArticle], 'find');
 
     const res = await request(app)
-      .get(`/api/articles/user/${mockArticle.user}/articles`)
-      .set('Authorization', 'Bearer valid_token');
+      .get(`/api/articles/user/${mockArticle.user}/articles`);
 
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(1);
