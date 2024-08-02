@@ -5,9 +5,11 @@ const mockingoose = require("mockingoose");
 const Article = require("../api/articles/articles.schema");
 const articlesRouter = require("../api/articles/articles.router");
 
+const mockUserId = new mongoose.Types.ObjectId();
+
 // Mock du middleware d'authentification
 jest.mock("../middlewares/auth", () => (req, res, next) => {
-  req.user = { id: "mockUserId", role: "admin" };
+  req.user = { id: mockUserId.toString(), role: "admin" };
   next();
 });
 
@@ -24,7 +26,7 @@ const mockArticle = {
   title: 'Test Article',
   content: 'This is a test article.',
   status: 'draft',
-  author: new mongoose.Types.ObjectId()
+  author: mockUserId
 };
 
 describe('Articles API', () => {
@@ -37,7 +39,7 @@ describe('Articles API', () => {
 
     const res = await request(app)
       .post('/api/articles')
-      .send(mockArticle);
+      .send({ title: mockArticle.title, content: mockArticle.content, status: mockArticle.status });
 
     expect(res.status).toBe(201);
     expect(res.body.title).toBe(mockArticle.title);
@@ -69,7 +71,7 @@ describe('Articles API', () => {
     mockingoose(Article).toReturn([mockArticle], 'find');
 
     const res = await request(app)
-      .get(`/api/articles/user/${mockArticle.author}`);
+      .get(`/api/articles/user/${mockUserId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(1);

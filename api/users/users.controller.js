@@ -1,9 +1,8 @@
-// /api/users/users.controller.js
 const usersService = require('./users.service');
 const UnauthorizedError = require('../../errors/unauthorized');
-const NotFoundError = require('../../errors/not-found'); // Importation de NotFoundError
+const NotFoundError = require('../../errors/not-found');
 const jwt = require('jsonwebtoken');
-const config = require('../../config'); // Assurez-vous que le chemin est correct
+const config = require('../../config');
 
 class UsersController {
   async getAll(req, res, next) {
@@ -20,7 +19,7 @@ class UsersController {
       const id = req.params.id;
       const user = await usersService.get(id);
       if (!user) {
-        throw new NotFoundError('User not found'); // Utilisation de NotFoundError
+        throw new NotFoundError('User not found');
       }
       res.json(user);
     } catch (err) {
@@ -31,7 +30,7 @@ class UsersController {
   async create(req, res, next) {
     try {
       const user = await usersService.create(req.body);
-      user.password = undefined; // Masquage du mot de passe
+      user.password = undefined;
       req.io.emit("user:create", user);
       res.status(201).json(user);
     } catch (err) {
@@ -47,7 +46,7 @@ class UsersController {
       if (!userModified) {
         throw new NotFoundError('User not found');
       }
-      userModified.password = undefined; // Masquage du mot de passe
+      userModified.password = undefined;
       res.json(userModified);
     } catch (err) {
       next(err);
@@ -71,11 +70,11 @@ class UsersController {
   async login(req, res, next) {
     try {
       const { email, password } = req.body;
-      const userId = await usersService.checkPasswordUser(email, password);
-      if (!userId) {
+      const user = await usersService.findByEmail(email);
+      if (!user || !await usersService.checkPassword(user, password)) {
         throw new UnauthorizedError('Invalid credentials');
       }
-      const token = jwt.sign({ userId }, config.secretJwtToken); // Utilisation de la clé secrète correcte
+      const token = jwt.sign({ userId: user._id }, config.secretJwtToken);
       res.json({ token });
     } catch (err) {
       next(err);

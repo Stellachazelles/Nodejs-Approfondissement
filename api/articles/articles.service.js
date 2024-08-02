@@ -1,10 +1,14 @@
 const Article = require('./articles.schema');
+const mongoose = require('mongoose');
 
 class ArticlesService {
   async create(articleData) {
     console.log('ArticlesService: Creating article with data:', articleData);
     try {
-      const article = new Article(articleData);
+      const article = new Article({
+        ...articleData,
+        author: mongoose.Types.ObjectId(articleData.author)
+      });
       const savedArticle = await article.save();
       console.log('ArticlesService: Article created successfully:', savedArticle);
       return savedArticle;
@@ -41,7 +45,7 @@ class ArticlesService {
   async getByUserId(userId) {
     console.log('ArticlesService: Getting articles for user:', userId);
     try {
-      const articles = await Article.find({ author: userId }).populate('author', '-password');
+      const articles = await Article.find({ author: mongoose.Types.ObjectId(userId) }).populate('author', '-password');
       console.log('ArticlesService: Articles retrieved successfully:', articles);
       return articles;
     } catch (error) {
