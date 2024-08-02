@@ -9,7 +9,7 @@ const articleSchema = new Schema({
     enum: ['draft', 'published'], 
     default: 'draft' 
   },
-  author: { type: Schema.Types.ObjectId, ref: 'User' }
+  author: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 });
 
 module.exports = mongoose.model('Article', articleSchema);

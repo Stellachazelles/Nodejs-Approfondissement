@@ -4,25 +4,27 @@ const mongoose = require("mongoose");
 const mockingoose = require("mockingoose");
 const Article = require("../api/articles/articles.schema");
 const articlesRouter = require("../api/articles/articles.router");
-const authMiddleware = require("../middlewares/auth");
 
 // Mock du middleware d'authentification
 jest.mock("../middlewares/auth", () => (req, res, next) => {
-  req.user = { _id: "mockUserId" };
+  req.user = { id: "mockUserId", role: "admin" };
   next();
 });
 
 const app = express();
 app.use(express.json());
-app.use(authMiddleware);
+app.use((req, res, next) => {
+  req.io = { emit: jest.fn() };
+  next();
+});
 app.use('/api/articles', articlesRouter);
 
 const mockArticle = {
-  _id: mongoose.Types.ObjectId().toString(),
+  _id: new mongoose.Types.ObjectId(),
   title: 'Test Article',
   content: 'This is a test article.',
   status: 'draft',
-  user: mongoose.Types.ObjectId().toString()
+  author: new mongoose.Types.ObjectId()
 };
 
 describe('Articles API', () => {
@@ -43,7 +45,8 @@ describe('Articles API', () => {
   });
 
   it('should update an article', async () => {
-    mockingoose(Article).toReturn({ ...mockArticle, title: 'Updated Title' }, 'findOneAndUpdate');
+    const updatedArticle = { ...mockArticle, title: 'Updated Title' };
+    mockingoose(Article).toReturn(updatedArticle, 'findOneAndUpdate');
 
     const res = await request(app)
       .put(`/api/articles/${mockArticle._id}`)
@@ -66,10 +69,10 @@ describe('Articles API', () => {
     mockingoose(Article).toReturn([mockArticle], 'find');
 
     const res = await request(app)
-      .get(`/api/articles/user/${mockArticle.user}/articles`);
+      .get(`/api/articles/user/${mockArticle.author}`);
 
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(1);
-    expect(res.body[0]._id).toBe(mockArticle._id);
+    expect(res.body[0]._id.toString()).toBe(mockArticle._id.toString());
   });
 });
